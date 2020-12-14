@@ -3,7 +3,7 @@ name: Deploy
 # 觸發時機，當推送到分支 master 時
 on:
   push:
-    branches: [master]
+    branches: [main]
 # 執行的工作
 jobs:
   # 工作名稱
@@ -24,7 +24,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # 使用 master 分支的檔案
-          BASE_BRANCH: master
+          BASE_BRANCH: main
           # 部署到 gh-pages 分支
           BRANCH: gh-pages
           # 編譯後要上傳的資料夾
