@@ -1,32 +1,103 @@
-<template>
-  <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div>
-    <router-view/>
-  </div>
+<template lang="pug">
+  div#app
+    b-navbar(toggleable='lg' type='dark' variant='info')
+      b-container
+        b-navbar-brand(to='/') 線上相簿
+        b-navbar-toggle(target='nav-collapse')
+        b-collapse#nav-collapse(is-nav)
+          b-navbar-nav.ml-auto
+            b-nav-item(v-if="user.id.length === 0" to='/login') 登入
+            b-nav-item(v-if="user.id.length === 0" to='/reg') 註冊
+            b-nav-item(v-if="user.id.length > 0" to='/album') 我的相簿
+            b-nav-item(v-if="user.id.length > 0" @click="logout") 登出
+    router-view
 </template>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
+<script>
+export default {
+  name: 'App',
+  computed: {
+    user () {
+      return this.$store.state.user
+    }
+  },
+  methods: {
+    logout () {
+      this.axios.delete(process.env.VUE_APP_API + '/users/logout')
+        .then(res => {
+          // 如果登出成功
+          if (res.data.success) {
+            this.$swal({
+              icon: 'success',
+              title: '成功',
+              text: '登出成功'
+            })
 
-#nav {
-  padding: 30px;
-}
+            // 清除 vuex
+            this.$store.commit('logout')
 
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
+            // 導回首頁
+            if (this.$route.path !== '/') {
+              this.$router.push('/')
+            }
+          } else {
+            this.$swal({
+              icon: 'error',
+              title: '錯誤',
+              text: res.data.message
+            })
+          }
+        })
+        .catch(error => {
+          // 如果回來的狀態碼不是 200，直接 alert 錯誤訊息
+          this.$swal({
+            icon: 'error',
+            title: '錯誤',
+            text: error.response.data.message
+          })
+        })
+    },
+    heartbeat () {
+      this.axios.get(process.env.VUE_APP_API + '/users/heartbeat')
+        .then(res => {
+          // 如果 vuex 是登入中
+          if (this.user.id.length > 0) {
+            // 但是後端沒登入
+            if (!res.data) {
+              this.$swal({
+                icon: 'error',
+                title: '錯誤',
+                text: '登入時效已過'
+              })
+              // 登出
+              this.$store.commit('logout')
+              // 導回首頁
+              if (this.$route.path !== '/') {
+                this.$router.push('/')
+              }
+            }
+          }
+        })
+        .catch(() => {
+          this.$swal({
+            icon: 'error',
+            title: '錯誤',
+            text: '發生錯誤'
+          })
+          // 登出
+          this.$store.commit('logout')
+          // 導回首頁
+          if (this.$route.path !== '/') {
+            this.$router.push('/')
+          }
+        })
+    }
+  },
+  mounted () {
+    this.heartbeat()
+    setInterval(() => {
+      this.heartbeat()
+    }, 5000)
+  }
 }
-
-#nav a.router-link-exact-active {
-  color: #42b983;
-}
-</style>
+</script>
